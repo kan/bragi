@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"log"
 	"net"
+	"strings"
 )
 
 func serve(conn net.Conn) {
@@ -44,7 +46,12 @@ func serve(conn net.Conn) {
 func handle(conn net.Conn, buf []byte) error {
 	text := string(buf[:len(buf)-1])
 	log.Println("word: " + text)
-	conn.Write([]byte("1/Hello/World/Bragi/\n"))
+	words, err := convertKanjiAI(context.Background(), text)
+	if err != nil {
+		return err
+	}
+	log.Printf("kanji: %v", words)
+	conn.Write([]byte("1/" + strings.Join(words, "/") + "/\n"))
 	return nil
 }
 
