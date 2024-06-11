@@ -18,7 +18,7 @@ func convertKanjiAI(ctx context.Context, word string) ([]string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: "「" + word + "」を漢字にしてください。固有名詞の場合はカタカナを含んでも構いません。候補が複数ある場合、単語は,で区切ってください。単語のみ返してください",
+					Content: "以下の文章をかな漢字変換してください。候補が複数ある場合、,で区切ってください\n\n" + word,
 				},
 			},
 		},
