@@ -1,6 +1,6 @@
 services:
   golang:
-    image: golang:1.22.3
+    build: .
     ports:
       - 1234:1234
     volumes:

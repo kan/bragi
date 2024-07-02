@@ -36,10 +36,6 @@ func serve(conn net.Conn) {
 		default:
 			log.Print(c)
 		}
-
-		log.Println(c)
-
-		conn.Write([]byte("Hello\n"))
 	}
 }
 
