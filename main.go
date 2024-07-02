@@ -48,6 +48,7 @@ func handle(conn net.Conn, buf []byte) error {
 	log.Println("word: " + text)
 	words, err := convertKanjiAI(context.Background(), text)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	log.Printf("kanji: %v", words)

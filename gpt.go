@@ -9,8 +9,25 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-func convertKanjiAI(ctx context.Context, word string) ([]string, error) {
+var openAIClient *openai.Client
+
+func getOpenAIClient(ctx context.Context) (*openai.Client, error) {
+	if openAIClient != nil {
+		return openAIClient, nil
+	}
+
 	client := openai.NewClient(os.Getenv("BRAGI_OPENAI_API_KEY"))
+
+	openAIClient = client
+	return client, nil
+}
+
+func convertKanjiAI(ctx context.Context, word string) ([]string, error) {
+	client, err := getOpenAIClient(ctx)
+	if err != nil {
+		return []string{}, errors.WithStack(err)
+	}
+
 	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
