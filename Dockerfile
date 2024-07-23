@@ -6,6 +6,6 @@ COPY . /app
 RUN go build
 VOLUME ["/go/pkg/mod"]
 
-RUN go install github.com/cosmtrek/air@v1.49.0
+RUN go install github.com/air-verse/air@v1.49.0
 
 CMD air
