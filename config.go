@@ -12,9 +12,9 @@ import (
 )
 
 type Config struct {
-	Port        string   `koanf:"port"`
-	UseAI       bool     `koanf:"use_ai"`
-	Dictironary []string `koanf:"dictionary"`
+	Port       string   `koanf:"port"`
+	UseAI      bool     `koanf:"use_ai"`
+	Dictionary []string `koanf:"dictionary"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

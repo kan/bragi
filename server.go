@@ -5,7 +5,6 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
 	"strings"
 )
 
@@ -22,15 +21,8 @@ func LoadServer(config *Config) (*Server, error) {
 	}
 
 	dics := []DicMap{}
-	for _, dic := range config.Dictironary {
-		f, err := os.Open(dic)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-
-		r := NewReader(f)
-		m, err := r.ReadMap()
+	for _, dic := range config.Dictionary {
+		m, err := LoadMap(dic)
 		if err != nil {
 			return nil, err
 		}
