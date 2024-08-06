@@ -2,14 +2,20 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 )
 
 var charCodePattern *regexp.Regexp
@@ -87,10 +93,65 @@ func (r *Reader) ReadMap() (DicMap, error) {
 	return mws, nil
 }
 
-func NewReader(r io.Reader) *Reader {
+func isGzip(r io.ReadSeeker) (bool, error) {
+	pos, err := r.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	header := make([]byte, 2)
+	if _, err := r.Read(header); err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	if _, err := r.Seek(pos, io.SeekStart); err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return header[0] == 0x1f && header[1] == 0x8b, nil
+}
+
+func detectEncoding(r io.Reader) encoding.Encoding {
+	buf := make([]byte, 512)
+	n, err := r.Read(buf)
+	if err != nil && err != io.EOF {
+		log.Println("Error reading file:", err)
+		return unicode.UTF8
+	}
+	buf = buf[:n]
+
+	if isEUCJP(buf) {
+		return japanese.EUCJP
+	}
+
+	return unicode.UTF8
+}
+
+func NewReader(file *os.File) (*Reader, error) {
+	gz, err := isGzip(file)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var r io.Reader = file
+
+	if gz {
+		gr, err := gzip.NewReader(file)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		defer gr.Close()
+		r = gr
+	}
+
+	enc := detectEncoding(r)
+	if enc == japanese.EUCJP {
+		r = transform.NewReader(r, enc.NewDecoder())
+	}
+
 	sc := bufio.NewScanner(r)
 
-	return &Reader{scanner: sc}
+	return &Reader{scanner: sc}, nil
 }
 
 func decode(str string) string {

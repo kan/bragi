@@ -1,10 +1,8 @@
 package main
 
 import (
-	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,10 +10,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"golang.org/x/text/encoding"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
 )
 
 func isURL(s string) bool {
@@ -41,24 +35,8 @@ func isEUCJP(data []byte) bool {
 	return true
 }
 
-func detectEncoding(r io.Reader) encoding.Encoding {
-	buf := make([]byte, 512)
-	n, err := r.Read(buf)
-	if err != nil && err != io.EOF {
-		log.Println("Error reading file:", err)
-		return unicode.UTF8
-	}
-	buf = buf[:n]
-
-	if isEUCJP(buf) {
-		return japanese.EUCJP
-	}
-
-	return unicode.UTF8
-}
-
 func LoadMap(src string) (DicMap, error) {
-	var reader io.Reader
+	var file *os.File
 
 	if isURL(src) {
 		resp, err := http.Get(src)
@@ -78,7 +56,7 @@ func LoadMap(src string) (DicMap, error) {
 
 		fname := filepath.Base(u.Path)
 
-		file, err := os.Create(fname)
+		file, err = os.Create(fname)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -90,8 +68,6 @@ func LoadMap(src string) (DicMap, error) {
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
 			return nil, errors.WithStack(err)
 		}
-
-		reader = file
 	} else {
 		var err error
 		file, err := os.Open(src)
@@ -99,25 +75,12 @@ func LoadMap(src string) (DicMap, error) {
 			return nil, errors.WithStack(err)
 		}
 		defer file.Close()
-
-		reader = file
 	}
 
-	if strings.HasSuffix(src, ".gz") {
-		gr, err := gzip.NewReader(reader)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer gr.Close()
-
-		reader = gr
+	r, err := NewReader(file)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	enc := detectEncoding(reader)
-	if enc == japanese.EUCJP {
-		reader = transform.NewReader(reader, enc.NewDecoder())
-	}
-
-	r := NewReader(reader)
 	return r.ReadMap()
 }
