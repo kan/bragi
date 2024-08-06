@@ -15,6 +15,7 @@ type Config struct {
 	Port       string   `koanf:"port"`
 	UseAI      bool     `koanf:"use_ai"`
 	Dictionary []string `koanf:"dictionary"`
+	DictPath   string   `koanf:"dict_path"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

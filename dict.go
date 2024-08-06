@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,37 +36,46 @@ func isEUCJP(data []byte) bool {
 	return true
 }
 
-func LoadMap(src string) (DicMap, error) {
+func LoadMap(src, dir string) (DicMap, error) {
 	var file *os.File
 
 	if isURL(src) {
-		resp, err := http.Get(src)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to download dictionary: %s", resp.Status)
-		}
-
 		u, err := url.Parse(src)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
 		fname := filepath.Base(u.Path)
+		fpath := filepath.Join(dir, fname)
 
-		file, err = os.Create(fname)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer file.Close()
+		file, err = os.Open(fpath)
+		if err == nil {
+			// use cache file
+			log.Printf("use: %s\n", fpath)
+		} else if os.IsNotExist(err) {
+			resp, err := http.Get(src)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			defer resp.Body.Close()
 
-		if _, err := io.Copy(file, resp.Body); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			if resp.StatusCode != http.StatusOK {
+				return nil, fmt.Errorf("failed to download dictionary: %s", resp.Status)
+			}
+
+			file, err = os.Create(fpath)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			defer file.Close()
+
+			if _, err := io.Copy(file, resp.Body); err != nil {
+				return nil, errors.WithStack(err)
+			}
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				return nil, errors.WithStack(err)
+			}
+		} else {
 			return nil, errors.WithStack(err)
 		}
 	} else {

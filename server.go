@@ -5,7 +5,11 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type Server struct {
@@ -20,9 +24,21 @@ func LoadServer(config *Config) (*Server, error) {
 		log.Printf("Use AI Dictionary\n")
 	}
 
+	dir := config.DictPath
+	if dir == "" {
+		cdir, err := os.UserCacheDir()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		dir = filepath.Join(cdir, "bragi", "dict")
+	}
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	dics := []DicMap{}
 	for _, dic := range config.Dictionary {
-		m, err := LoadMap(dic)
+		m, err := LoadMap(dic, dir)
 		if err != nil {
 			return nil, err
 		}
