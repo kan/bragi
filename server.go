@@ -88,7 +88,7 @@ func (s *Server) handle(conn net.Conn, buf []byte) error {
 	log.Println("word: " + text)
 
 	words := []string{}
-	if s.Config.UseAI {
+	if len(text) > 1 && s.Config.UseAI {
 		var err error
 		words, err = convertKanjiAI(context.Background(), text)
 		if err != nil {
