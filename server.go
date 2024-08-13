@@ -17,6 +17,22 @@ type Server struct {
 	Dics   []DicMap
 }
 
+func getCacheDir(config *Config) (string, error) {
+	dir := config.DictPath
+	if dir == "" {
+		cdir, err := os.UserCacheDir()
+		if err != nil {
+			return "", errors.WithStack(err)
+		}
+		dir = filepath.Join(cdir, "bragi", "dict")
+	}
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return dir, nil
+}
+
 func LoadServer(config *Config) (*Server, error) {
 	log.Printf("Bragi server is running on port %s\n", config.Port)
 
@@ -24,21 +40,14 @@ func LoadServer(config *Config) (*Server, error) {
 		log.Printf("Use AI Dictionary\n")
 	}
 
-	dir := config.DictPath
-	if dir == "" {
-		cdir, err := os.UserCacheDir()
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		dir = filepath.Join(cdir, "bragi", "dict")
-	}
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	dir, err := getCacheDir(config)
+	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	dics := []DicMap{}
 	for _, dic := range config.Dictionary {
-		m, err := LoadMap(dic, dir)
+		m, _, err := LoadMap(dic, dir, false)
 		if err != nil {
 			return nil, err
 		}

@@ -36,13 +36,13 @@ func isEUCJP(data []byte) bool {
 	return true
 }
 
-func LoadMap(src, dir string) (DicMap, error) {
+func LoadMap(src, dir string, update bool) (DicMap, bool, error) {
 	var file *os.File
 
 	if isURL(src) {
 		u, err := url.Parse(src)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, false, errors.WithStack(err)
 		}
 
 		fname := filepath.Base(u.Path)
@@ -55,42 +55,44 @@ func LoadMap(src, dir string) (DicMap, error) {
 		} else if os.IsNotExist(err) {
 			resp, err := http.Get(src)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return nil, false, errors.WithStack(err)
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				return nil, fmt.Errorf("failed to download dictionary: %s", resp.Status)
+				return nil, false, fmt.Errorf("failed to download dictionary: %s", resp.Status)
 			}
 
 			file, err = os.Create(fpath)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return nil, false, errors.WithStack(err)
 			}
 			defer file.Close()
 
 			if _, err := io.Copy(file, resp.Body); err != nil {
-				return nil, errors.WithStack(err)
+				return nil, false, errors.WithStack(err)
 			}
 			if _, err := file.Seek(0, io.SeekStart); err != nil {
-				return nil, errors.WithStack(err)
+				return nil, false, errors.WithStack(err)
 			}
 		} else {
-			return nil, errors.WithStack(err)
+			return nil, false, errors.WithStack(err)
 		}
 	} else {
 		var err error
 		file, err := os.Open(src)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, false, errors.WithStack(err)
 		}
 		defer file.Close()
+		update = false // ローカル辞書は更新しない
 	}
 
 	r, err := NewReader(file)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, update, errors.WithStack(err)
 	}
 
-	return r.ReadMap()
+	m, err := r.ReadMap()
+	return m, update, err
 }
