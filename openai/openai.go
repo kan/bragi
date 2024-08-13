@@ -1,4 +1,4 @@
-package main
+package openai
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func getOpenAIClient(ctx context.Context) (*openai.Client, error) {
 	return client, nil
 }
 
-func convertKanjiAI(ctx context.Context, word string) ([]string, error) {
+func ConvertKanjiAI(ctx context.Context, word string) ([]string, error) {
 	client, err := getOpenAIClient(ctx)
 	if err != nil {
 		return []string{}, errors.WithStack(err)

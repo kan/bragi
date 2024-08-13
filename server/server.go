@@ -1,64 +1,21 @@
-package main
+package server
 
 import (
 	"bufio"
 	"context"
 	"log"
 	"net"
-	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/kan/bragi/config"
+	"github.com/kan/bragi/dict"
+	"github.com/kan/bragi/openai"
 	"github.com/pkg/errors"
 )
 
 type Server struct {
-	Config *Config
-	Dics   []DicMap
-}
-
-func getCacheDir(config *Config) (string, error) {
-	dir := config.DictPath
-	if dir == "" {
-		cdir, err := os.UserCacheDir()
-		if err != nil {
-			return "", errors.WithStack(err)
-		}
-		dir = filepath.Join(cdir, "bragi", "dict")
-	}
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	return dir, nil
-}
-
-func LoadServer(config *Config) (*Server, error) {
-	log.Printf("Bragi server is running on port %s\n", config.Port)
-
-	if config.UseAI {
-		log.Printf("Use AI Dictionary\n")
-	}
-
-	dir, err := getCacheDir(config)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	dics := []DicMap{}
-	for _, dic := range config.Dictionary {
-		m, _, err := LoadMap(dic, dir, false)
-		if err != nil {
-			return nil, err
-		}
-		log.Printf("Load dictionary: %s ...\n", dic)
-
-		dics = append(dics, m)
-	}
-
-	s := &Server{Config: config, Dics: dics}
-
-	return s, nil
+	Config *config.Config
+	Dics   []dict.DicMap
 }
 
 func (s *Server) Serve(conn net.Conn) {
@@ -99,7 +56,7 @@ func (s *Server) handle(conn net.Conn, buf []byte) error {
 	words := []string{}
 	if len(text) > 1 && s.Config.UseAI {
 		var err error
-		words, err = convertKanjiAI(context.Background(), text)
+		words, err = openai.ConvertKanjiAI(context.Background(), text)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -118,4 +75,32 @@ func (s *Server) handle(conn net.Conn, buf []byte) error {
 	log.Printf("kanji: %v", words)
 	conn.Write([]byte("1/" + strings.Join(words, "/") + "/\n"))
 	return nil
+}
+
+func LoadServer(conf *config.Config) (*Server, error) {
+	log.Printf("Bragi server is running on port %s\n", conf.Port)
+
+	if conf.UseAI {
+		log.Printf("Use AI Dictionary\n")
+	}
+
+	dir, err := conf.GetCacheDir()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	dics := []dict.DicMap{}
+	for _, dic := range conf.Dictionary {
+		m, _, err := dict.LoadMap(dic, dir, false)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Load dictionary: %s ...\n", dic)
+
+		dics = append(dics, m)
+	}
+
+	s := &Server{Config: conf, Dics: dics}
+
+	return s, nil
 }
