@@ -16,6 +16,7 @@ import (
 type Config struct {
 	Port       string   `koanf:"port"`
 	UseAI      bool     `koanf:"use_ai"`
+	UseLisp    bool     `koanf:"use_lisp"`
 	Dictionary []string `koanf:"dictionary"`
 	DictPath   string   `koanf:"dict_path"`
 }
@@ -57,8 +58,9 @@ func LoadConfig(filename string) (*Config, error) {
 
 	// 初期値を設定
 	defaults := map[string]interface{}{
-		"port":   "1234",
-		"use_ai": true,
+		"port":     "1234",
+		"use_ai":   true,
+		"use_lisp": true,
 	}
 	for key, val := range defaults {
 		if !k.Exists(key) {
