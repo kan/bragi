@@ -97,7 +97,7 @@ func update(ctx context.Context, cmd *cli.Command) error {
 		panic(err)
 	}
 	for _, dic := range conf.Dictionary {
-		_, up, err := dict.LoadMap(dic, dir, false)
+		_, up, err := dict.NewSkkDict(dic, dir, true)
 		if err != nil {
 			panic(err)
 		}

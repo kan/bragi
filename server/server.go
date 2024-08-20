@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"context"
 	"log"
 	"net"
 	"strings"
@@ -15,7 +14,7 @@ import (
 
 type Server struct {
 	Config *config.Config
-	Dics   []dict.DicMap
+	Dicts  []dict.Dict
 }
 
 func (s *Server) Serve(conn net.Conn) {
@@ -54,21 +53,10 @@ func (s *Server) handle(conn net.Conn, buf []byte) error {
 	log.Println("word: " + text)
 
 	words := []string{}
-	if len(text) > 1 && s.Config.UseAI {
-		var err error
-		words, err = openai.ConvertKanjiAI(context.Background(), text)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-	}
-
-	for _, dic := range s.Dics {
-		ws, ok := dic[text]
-		if ok {
-			for _, w := range ws {
-				words = append(words, w.String())
-			}
+	for _, dic := range s.Dicts {
+		ws, err := dic.Convert(text)
+		if err == nil {
+			words = append(words, ws...)
 		}
 	}
 
@@ -80,7 +68,10 @@ func (s *Server) handle(conn net.Conn, buf []byte) error {
 func LoadServer(conf *config.Config) (*Server, error) {
 	log.Printf("Bragi server is running on port %s\n", conf.Port)
 
+	dics := []dict.Dict{}
 	if conf.UseAI {
+		ad := openai.NewOpenAIDict()
+		dics = append(dics, ad)
 		log.Printf("Use AI Dictionary\n")
 	}
 
@@ -89,18 +80,17 @@ func LoadServer(conf *config.Config) (*Server, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	dics := []dict.DicMap{}
 	for _, dic := range conf.Dictionary {
-		m, _, err := dict.LoadMap(dic, dir, false)
+		sd, _, err := dict.NewSkkDict(dic, dir, false)
 		if err != nil {
 			return nil, err
 		}
 		log.Printf("Load dictionary: %s ...\n", dic)
 
-		dics = append(dics, m)
+		dics = append(dics, sd)
 	}
 
-	s := &Server{Config: conf, Dics: dics}
+	s := &Server{Config: conf, Dicts: dics}
 
 	return s, nil
 }

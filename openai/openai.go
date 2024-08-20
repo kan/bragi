@@ -9,27 +9,17 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-var openAIClient *openai.Client
-
-func getOpenAIClient(ctx context.Context) (*openai.Client, error) {
-	if openAIClient != nil {
-		return openAIClient, nil
-	}
-
-	client := openai.NewClient(os.Getenv("BRAGI_OPENAI_API_KEY"))
-
-	openAIClient = client
-	return client, nil
+type OpenAIDict struct {
+	client *openai.Client
 }
 
-func ConvertKanjiAI(ctx context.Context, word string) ([]string, error) {
-	client, err := getOpenAIClient(ctx)
-	if err != nil {
-		return []string{}, errors.WithStack(err)
+func (d *OpenAIDict) Convert(word string) ([]string, error) {
+	if len(word) < 2 {
+		return []string{}, nil
 	}
 
-	resp, err := client.CreateChatCompletion(
-		ctx,
+	resp, err := d.client.CreateChatCompletion(
+		context.Background(),
 		openai.ChatCompletionRequest{
 			Model: openai.GPT4o,
 			Messages: []openai.ChatCompletionMessage{
@@ -46,4 +36,9 @@ func ConvertKanjiAI(ctx context.Context, word string) ([]string, error) {
 
 	content := resp.Choices[0].Message.Content
 	return strings.Split(content, ","), nil
+}
+
+func NewOpenAIDict() *OpenAIDict {
+	client := openai.NewClient(os.Getenv("BRAGI_OPENAI_API_KEY"))
+	return &OpenAIDict{client: client}
 }
