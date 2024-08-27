@@ -75,7 +75,7 @@ func LoadServer(conf *config.Config) (*Server, error) {
 		log.Printf("Use AI Dictionary\n")
 	}
 	if conf.UseLisp {
-		ld := dict.NewLispDict()
+		ld := dict.NewLispDict(conf.DateFormat, conf.DateTimeFormat, conf.TimeZone)
 		dics = append(dics, ld)
 		log.Printf("Use Lisp Dictionary\n")
 	}

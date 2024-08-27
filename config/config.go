@@ -14,11 +14,14 @@ import (
 )
 
 type Config struct {
-	Port       string   `koanf:"port"`
-	UseAI      bool     `koanf:"use_ai"`
-	UseLisp    bool     `koanf:"use_lisp"`
-	Dictionary []string `koanf:"dictionary"`
-	DictPath   string   `koanf:"dict_path"`
+	Port           string   `koanf:"port"`
+	UseAI          bool     `koanf:"use_ai"`
+	UseLisp        bool     `koanf:"use_lisp"`
+	DateFormat     string   `koanf:"date_format"`
+	DateTimeFormat string   `koanf:"date_time_format"`
+	TimeZone       string   `koanf:"time_zone"`
+	Dictionary     []string `koanf:"dictionary"`
+	DictPath       string   `koanf:"dict_path"`
 }
 
 func (config *Config) GetCacheDir() (string, error) {
@@ -58,9 +61,12 @@ func LoadConfig(filename string) (*Config, error) {
 
 	// 初期値を設定
 	defaults := map[string]interface{}{
-		"port":     "1234",
-		"use_ai":   true,
-		"use_lisp": true,
+		"port":             "1234",
+		"use_ai":           true,
+		"use_lisp":         true,
+		"date_format":      "2006-01-02",
+		"date_time_format": "2006-01-02 15:04",
+		"time_zone":        "Asia/Tokyo",
 	}
 	for key, val := range defaults {
 		if !k.Exists(key) {
