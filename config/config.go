@@ -17,6 +17,8 @@ type Config struct {
 	Port           string   `koanf:"port"`
 	UseAI          bool     `koanf:"use_ai"`
 	UseLisp        bool     `koanf:"use_lisp"`
+	YearFormat     string   `koanf:"year_format"`
+	MonthFormat    string   `koanf:"month_format"`
 	DateFormat     string   `koanf:"date_format"`
 	DateTimeFormat string   `koanf:"date_time_format"`
 	TimeZone       string   `koanf:"time_zone"`
@@ -64,8 +66,10 @@ func LoadConfig(filename string) (*Config, error) {
 		"port":             "1234",
 		"use_ai":           true,
 		"use_lisp":         true,
-		"date_format":      "2006-01-02",
-		"date_time_format": "2006-01-02 15:04",
+		"year_format":      "2006年",
+		"month_format":     "2006年1月",
+		"date_format":      "2006年1月2日",
+		"date_time_format": "2006年1月2日 15時4分",
 		"time_zone":        "Asia/Tokyo",
 	}
 	for key, val := range defaults {
