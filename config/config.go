@@ -14,16 +14,17 @@ import (
 )
 
 type Config struct {
-	Port           string   `koanf:"port"`
-	UseAI          bool     `koanf:"use_ai"`
-	UseLisp        bool     `koanf:"use_lisp"`
-	YearFormat     string   `koanf:"year_format"`
-	MonthFormat    string   `koanf:"month_format"`
-	DateFormat     string   `koanf:"date_format"`
-	DateTimeFormat string   `koanf:"date_time_format"`
-	TimeZone       string   `koanf:"time_zone"`
-	Dictionary     []string `koanf:"dictionary"`
-	DictPath       string   `koanf:"dict_path"`
+	Port           string   `koanf:"port" json:"port"`
+	AdminPort      string   `koanf:"admin_port" json:"admin_port"`
+	UseAI          bool     `koanf:"use_ai" json:"use_ai"`
+	UseLisp        bool     `koanf:"use_lisp" json:"use_lisp"`
+	YearFormat     string   `koanf:"year_format" json:"year_format"`
+	MonthFormat    string   `koanf:"month_format" json:"month_format"`
+	DateFormat     string   `koanf:"date_format" json:"date_format"`
+	DateTimeFormat string   `koanf:"date_time_format" json:"date_time_format"`
+	TimeZone       string   `koanf:"time_zone" json:"time_zone"`
+	Dictionary     []string `koanf:"dictionary" json:"dictionary"`
+	DictPath       string   `koanf:"dict_path" json:"dict_path"`
 }
 
 func (config *Config) GetCacheDir() (string, error) {
@@ -64,6 +65,7 @@ func LoadConfig(filename string) (*Config, error) {
 	// 初期値を設定
 	defaults := map[string]interface{}{
 		"port":             "1234",
+		"admin_port":       "8080",
 		"use_ai":           true,
 		"use_lisp":         true,
 		"year_format":      "2006年",

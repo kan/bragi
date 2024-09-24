@@ -2,13 +2,18 @@ module github.com/kan/bragi
 
 go 1.22
 
+toolchain go1.23
+
 require (
 	github.com/knadh/koanf v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/sashabaranov/go-openai v1.24.1
 )
 
-require github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect

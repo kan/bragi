@@ -6,7 +6,10 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/kan/bragi/admin"
 	"github.com/kan/bragi/config"
 	"github.com/kan/bragi/dict"
 	"github.com/kan/bragi/server"
@@ -63,6 +66,28 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 		return errors.WithStack(err)
 	}
 
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := serveSKK(conf); err != nil {
+			log.Fatalf("skk server failed: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := serveWeb(conf, cmd.String("config")); err != nil {
+			log.Fatalf("web server failed: %v", err)
+		}
+	}()
+
+	<-signalChan
+	log.Println("Received interrupt signal, shutting down...")
+
+	return nil
+}
+
+func serveSKK(conf *config.Config) error {
 	l, err := net.Listen("tcp", ":"+conf.Port)
 	if err != nil {
 		return fmt.Errorf("failed to setup TCP server on port %s: %+v", conf.Port, err)
@@ -84,6 +109,19 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 
 		go s.Serve(conn)
 	}
+}
+
+func serveWeb(conf *config.Config, path string) error {
+	if path == "" {
+		path = "config.toml"
+	}
+	s := admin.LoadServer(conf, path)
+
+	if err := s.Serve(); err != nil {
+		errors.WithStack(err)
+	}
+
+	return nil
 }
 
 func update(ctx context.Context, cmd *cli.Command) error {
