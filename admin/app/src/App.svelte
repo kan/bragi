@@ -15,7 +15,12 @@
     dict_path: string;
   };
 
-  let config: Config = {};
+  let config: Config = {
+    port: "", admin_port: "",
+    use_ai: true, use_lisp: true,
+    year_format: "", month_format: "", date_format: "", date_time_format: "",
+    time_zone: "Asia/Tokyo", dictionary: null, dict_path: "",
+  };
   let dicts:Array<string> = [];
 
   async function fetchData() {
@@ -72,11 +77,11 @@
     <fieldset>
       <label>
         SKKサーバーポート
-        <input type="number" placeholder="1234" bind:value={config.port} />
+        <input type="text" placeholder="1234" bind:value={config.port} />
       </label>
       <label>
         管理画面ポート
-        <input type="number" placeholder="8080" bind:value={config.admin_port} disabled />
+        <input type="text" placeholder="8080" bind:value={config.admin_port} disabled />
       </label>
       <label>
         <input type="checkbox" bind:checked={config.use_ai} />

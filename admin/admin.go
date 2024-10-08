@@ -17,8 +17,9 @@ import (
 var adminFiles embed.FS
 
 type AdminServer struct {
-	Config     *config.Config
-	ConfigPath string
+	Config      *config.Config
+	ConfigPath  string
+	RestartChan chan<- struct{}
 }
 
 func (a *AdminServer) saveConfig(conf *config.Config) error {
@@ -56,21 +57,33 @@ func (a *AdminServer) Serve() error {
 		case http.MethodGet:
 			if err := json.NewEncoder(w).Encode(a.Config); err != nil {
 				http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
+				return
 			}
 			return
 		case http.MethodPost:
 			var conf config.Config
 			if err := json.NewDecoder(r.Body).Decode(&conf); err != nil {
+				log.Printf("%+v", err)
 				http.Error(w, "Error decoding JSON", http.StatusBadRequest)
+				return
 			}
 
 			if err := a.saveConfig(&conf); err != nil {
 				http.Error(w, "Error save config", http.StatusInternalServerError)
+				return
+			}
+
+			select {
+			case a.RestartChan <- struct{}{}:
+				log.Println("Sent restart signal to SKK server")
+			default:
+				log.Println("Restart signal already sent")
 			}
 
 			w.WriteHeader(http.StatusOK)
 			if err := json.NewEncoder(w).Encode(a.Config); err != nil {
 				http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
+				return
 			}
 			return
 		default:
@@ -87,6 +100,6 @@ func (a *AdminServer) Serve() error {
 	return nil
 }
 
-func LoadServer(conf *config.Config, path string) *AdminServer {
-	return &AdminServer{Config: conf, ConfigPath: path}
+func LoadServer(conf *config.Config, path string, c chan<- struct{}) *AdminServer {
+	return &AdminServer{Config: conf, ConfigPath: path, RestartChan: c}
 }

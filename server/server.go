@@ -88,7 +88,8 @@ func LoadServer(conf *config.Config) (*Server, error) {
 	for _, dic := range conf.Dictionary {
 		sd, _, err := dict.NewSkkDict(dic, dir, false)
 		if err != nil {
-			return nil, err
+			log.Printf("%v", err)
+			continue
 		}
 		log.Printf("Load dictionary: %s ...\n", dic)
 

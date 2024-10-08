@@ -14,17 +14,17 @@ import (
 )
 
 type Config struct {
-	Port           string   `koanf:"port" json:"port"`
-	AdminPort      string   `koanf:"admin_port" json:"admin_port"`
-	UseAI          bool     `koanf:"use_ai" json:"use_ai"`
-	UseLisp        bool     `koanf:"use_lisp" json:"use_lisp"`
-	YearFormat     string   `koanf:"year_format" json:"year_format"`
-	MonthFormat    string   `koanf:"month_format" json:"month_format"`
-	DateFormat     string   `koanf:"date_format" json:"date_format"`
-	DateTimeFormat string   `koanf:"date_time_format" json:"date_time_format"`
-	TimeZone       string   `koanf:"time_zone" json:"time_zone"`
-	Dictionary     []string `koanf:"dictionary" json:"dictionary"`
-	DictPath       string   `koanf:"dict_path" json:"dict_path"`
+	Port           string   `koanf:"port" toml:"port" json:"port"`
+	AdminPort      string   `koanf:"admin_port" toml:"admin_port" json:"admin_port"`
+	UseAI          bool     `koanf:"use_ai" toml:"use_ai" json:"use_ai"`
+	UseLisp        bool     `koanf:"use_lisp" toml:"use_lisp" json:"use_lisp"`
+	YearFormat     string   `koanf:"year_format" toml:"year_format" json:"year_format"`
+	MonthFormat    string   `koanf:"month_format" toml:"month_format" json:"month_format"`
+	DateFormat     string   `koanf:"date_format" toml:"date_format" json:"date_format"`
+	DateTimeFormat string   `koanf:"date_time_format" toml:"date_time_format" json:"date_time_format"`
+	TimeZone       string   `koanf:"time_zone" toml:"time_zone" json:"time_zone"`
+	Dictionary     []string `koanf:"dictionary" toml:"dictionary" json:"dictionary"`
+	DictPath       string   `koanf:"dict_path" toml:"dict_path" json:"dict_path"`
 }
 
 func (config *Config) GetCacheDir() (string, error) {
