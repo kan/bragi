@@ -6,8 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/kan/bragi/admin"
@@ -16,8 +14,61 @@ import (
 	"github.com/kan/bragi/server"
 	"github.com/pkg/errors"
 
+	"github.com/kardianos/service"
 	"github.com/urfave/cli/v3"
 )
+
+type app struct {
+	logger service.Logger
+	exit   chan struct{}
+	cancel context.CancelFunc
+	config string
+}
+
+func (a *app) run() {
+	ctx, cancel := context.WithCancel(context.Background())
+	a.cancel = cancel
+
+	err := serve(ctx, a.config)
+	if err != nil && err != context.Canceled {
+		a.logger.Errorf("serve error: %+v", err)
+	}
+}
+
+func (a *app) Start(s service.Service) error {
+	a.logger.Info("start bragi service...")
+
+	go a.run()
+	return nil
+}
+
+func (a *app) Stop(s service.Service) error {
+	a.logger.Info("stop bragi service...")
+	if a.cancel != nil {
+		a.cancel()
+	}
+	close(a.exit)
+	return nil
+}
+
+func loadService(conf string) (service.Service, error) {
+	appConfig := &service.Config{
+		Name:        "Bragi",
+		DisplayName: "Bragi SKK Server",
+		Description: "It is an implementation of a customizable SKK server built in golang",
+	}
+
+	bapp := &app{
+		exit:   make(chan struct{}),
+		config: conf,
+	}
+	s, err := service.New(bapp, appConfig)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return s, nil
+}
 
 func main() {
 	cli.HelpFlag = &cli.BoolFlag{
@@ -44,9 +95,109 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:   "serve",
-				Usage:  "SKKサーバーを実行",
-				Action: serve,
+				Name:  "install",
+				Usage: "SKKサーバーをサービス登録",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					if err := s.Install(); err != nil {
+						return errors.WithStack(err)
+					}
+					fmt.Println("Service installed.")
+					return nil
+				},
+			},
+			{
+				Name:  "uninstall",
+				Usage: "SKKサーバーをサービス登録解除",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					if err := s.Uninstall(); err != nil {
+						return errors.WithStack(err)
+					}
+					fmt.Println("Service uninstalled.")
+					return nil
+				},
+			},
+			{
+				Name:  "start",
+				Usage: "サービス登録したSKKサーバーを開始",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					if err := s.Start(); err != nil {
+						return errors.WithStack(err)
+					}
+					fmt.Println("Service started...")
+					return nil
+				},
+			},
+			{
+				Name:  "stop",
+				Usage: "サービス登録したSKKサーバーを停止",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					if err := s.Stop(); err != nil {
+						return errors.WithStack(err)
+					}
+					fmt.Println("Service stopped.")
+					return nil
+				},
+			},
+			{
+				Name:  "restart",
+				Usage: "サービス登録したSKKサーバーを再起動",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					if err := s.Restart(); err != nil {
+						return errors.WithStack(err)
+					}
+					fmt.Println("Service restarted...")
+					return nil
+				},
+			},
+			{
+				Name:  "status",
+				Usage: "サービス登録したSKKサーバーの状態確認",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					s, err := loadService(c.String("config"))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					sts, err := s.Status()
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					switch sts {
+					case service.StatusRunning:
+						fmt.Println("Service running.")
+					case service.StatusStopped:
+						fmt.Println("Service stopped.")
+					default:
+						fmt.Println("Service unknown.")
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "run",
+				Usage: "SKKサーバーを実行",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return serve(ctx, c.String("config"))
+				},
 			},
 			{
 				Name:   "update",
@@ -54,7 +205,10 @@ func main() {
 				Action: update,
 			},
 		},
-		Action: serve, // デフォルトコマンド
+		Action: func(ctx context.Context, c *cli.Command) error {
+			// デフォルトコマンド
+			return serve(ctx, c.String("config"))
+		},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -62,15 +216,12 @@ func main() {
 	}
 }
 
-func serve(ctx context.Context, cmd *cli.Command) error {
-	conf, err := config.LoadConfig(cmd.String("config"))
+func serve(ctx context.Context, cpath string) error {
+	conf, err := config.LoadConfig(cpath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	log.Printf("%+v", conf)
-
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	restartChan := make(chan struct{}, 1)
 
@@ -90,22 +241,22 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 		}()
 	}
 
-	restartSKK := func(conf *config.Config) {
+	restartSKK := func() {
 		if cancelSKK != nil {
 			cancelSKK()
 		}
 		time.Sleep(100 * time.Millisecond)
-		conf, err := config.LoadConfig(cmd.String("config"))
+		cf, err := config.LoadConfig(cpath)
 		if err != nil {
 			log.Fatal("load config error", err)
 		}
-		runSKK(conf)
+		runSKK(cf)
 	}
 
 	runSKK(conf)
 
 	go func() {
-		if err := serveWeb(conf, cmd.String("config"), restartChan); err != nil {
+		if err := serveWeb(conf, cpath, restartChan); err != nil {
 			log.Fatalf("web server failed: %v", err)
 		}
 	}()
@@ -115,14 +266,14 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 			select {
 			case <-restartChan:
 				log.Println("Restarting SKK server due to config change...")
-				restartSKK(conf)
-			case <-skkCtx.Done():
+				restartSKK()
+			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	<-signalChan
+	<-ctx.Done()
 	log.Println("Received interrupt signal, shutting down...")
 
 	if cancelSKK != nil {
